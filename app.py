@@ -65,5 +65,9 @@ def predict():
 
     return render_template("result.html", result=result)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# ===============
+# JANGAN PAKAI app.run()
+# Railway + Gunicorn yang ngejalanin app
+# ===============
+# if __name__ == "__main__":
+#     app.run(debug=True)
