@@ -7,54 +7,41 @@ from monte_carlo import (
     monte_carlo_simulation
 )
 
-# =========================================================
-# SIAPKAN APLIKASI
-# =========================================================
 app = Flask(__name__)
 
-# =========================================================
-# LOAD & PERSIAPAN DATA SEKALI SAAT APP START
-# =========================================================
+# =======================
+# LOAD MODEL SEKALI SAAT START
+# =======================
 
 CSV_PATH = "jumlah_wisatawan_mancanegara_domestik_datang_ke_kota_bandung.csv"
 
-# 1. Load data mentah
 df_raw = load_raw_data(CSV_PATH)
-
-# 2. Bersihkan & agregasi (DOMESTIK + MANCANEGARA → TOTAL)
 df_agg = clean_and_aggregate(df_raw)
-
-# 3. Hitung growth rate
 df_growth = calculate_growth_rate(df_agg)
 growth_list = df_growth["growth_rate"].tolist()
-
-# 4. Bangun distribusi probabilitas
 dist = build_probability_distribution(growth_list)
 
-# 5. Ambil total wisatawan tahun terakhir
 last_total = df_agg["TOTAL"].iloc[-1]
-
-# 6. Data tahun untuk ditampilkan di halaman awal
 data_tahun = df_agg[["tahun", "TOTAL"]].to_dict(orient="records")
 
+years = [row["tahun"] for row in data_tahun]
+totals = [row["TOTAL"] for row in data_tahun]
 
-# =========================================================
-# ROUTES FLASK
-# =========================================================
+# =======================
+# ROUTES
+# =======================
 
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
-    """
-    Halaman utama: form input jumlah simulasi + tabel data.
-    """
-    return render_template("index.html", data_tahun=data_tahun)
-
+    return render_template(
+        "index.html",
+        data_tahun=data_tahun,
+        years=years,
+        totals=totals
+    )
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Jalankan simulasi Monte Carlo berdasarkan input user.
-    """
     try:
         n_sim = int(request.form.get("n_simulasi", 3000))
         if n_sim <= 0:
@@ -62,14 +49,12 @@ def predict():
     except:
         n_sim = 3000
 
-    # Jalankan model
     mean_pred, min_pred, max_pred = monte_carlo_simulation(
         last_total=last_total,
         dist=dist,
         n_sim=n_sim
     )
 
-    # Siapkan data untuk ditampilkan
     result = {
         "n_sim": n_sim,
         "last_total": int(last_total),
@@ -80,10 +65,8 @@ def predict():
 
     return render_template("result.html", result=result)
 
-
-# =========================================================
-# RUN APP
-# =========================================================
-
+# =======================
+# JANGAN JALANKAN app.run() DI RAILWAY
+# =======================
 # if __name__ == "__main__":
-#    app.run(debug=True)
+#     app.run(debug=True)
